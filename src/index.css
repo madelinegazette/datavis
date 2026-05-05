@@ -1,0 +1,69 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg:        #282a36;
+  --bg-dark:   #1e2029;
+  --line:      #44475a;
+  --fg:        #f8f8f2;
+  --comment:   #6272a4;
+  --cyan:      #8be9fd;
+  --green:     #50fa7b;
+  --orange:    #ffb86c;
+  --pink:      #ff79c6;
+  --purple:    #bd93f9;
+  --red:       #ff5555;
+  --yellow:    #f1fa8c;
+  color-scheme: dark;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  background-color: var(--bg);
+  color: var(--fg);
+  font-family: 'Inter', system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-track { background: var(--bg); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 2px; }
+
+/* Safe area padding for iPhone notch */
+.safe-top    { padding-top: env(safe-area-inset-top, 0px); }
+.safe-bottom { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+@layer components {
+  .card {
+    @apply bg-dracula-line/30 border border-dracula-line rounded-xl p-4;
+  }
+  .btn-primary {
+    @apply bg-dracula-purple text-dracula-bg font-semibold px-4 py-2 rounded-lg active:opacity-80 transition-opacity;
+  }
+  .btn-ghost {
+    @apply text-dracula-comment hover:text-dracula-fg px-3 py-2 rounded-lg transition-colors;
+  }
+  .mono {
+    font-family: 'JetBrains Mono', 'Fira Code', monospace;
+  }
+  .score-bar {
+    @apply h-1 rounded-full bg-dracula-line overflow-hidden;
+  }
+  .score-bar-fill {
+    @apply h-full rounded-full transition-all duration-500;
+  }
+}
