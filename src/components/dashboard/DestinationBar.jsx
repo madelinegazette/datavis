@@ -19,7 +19,7 @@ export function DestinationBar({ onGo }) {
 
   return (
     <form onSubmit={handleSubmit} className="px-4 py-3 border-b border-dracula-line">
-      <div className="text-xs text-dracula-comment font-mono uppercase tracking-wider mb-2">
+      <div className="text-xs font-mono uppercase tracking-[0.15em] text-dracula-comment mb-2">
         Destination
       </div>
       <div className="flex gap-2">
@@ -27,23 +27,23 @@ export function DestinationBar({ onGo }) {
           type="text"
           value={input}
           onChange={e => setInput(e.target.value)}
-          placeholder="Where are you going?"
-          className="flex-1 bg-dracula-line/30 border border-dracula-line rounded-lg px-3 py-2 text-dracula-fg text-sm placeholder-dracula-comment focus:outline-none focus:border-dracula-purple transition-colors"
+          placeholder="Address or place"
+          className="flex-1 bg-transparent border-b border-dracula-line px-0 py-2 text-dracula-fg text-sm font-mono placeholder-dracula-comment/50 focus:outline-none focus:border-dracula-purple transition-colors"
         />
         <button
           type="submit"
-          className="bg-dracula-purple text-dracula-bg font-semibold text-sm px-4 py-2 rounded-lg active:opacity-80 transition-opacity whitespace-nowrap"
+          className="font-mono font-bold text-xs uppercase tracking-widest text-dracula-bg px-4 py-2 bg-dracula-purple active:opacity-80 transition-opacity whitespace-nowrap"
         >
-          Go →
+          Go
         </button>
       </div>
       {settings.workAddress && (
         <button
           type="button"
-          className="text-xs text-dracula-comment hover:text-dracula-cyan mt-1 transition-colors"
+          className="text-xs font-mono text-dracula-comment hover:text-dracula-cyan mt-2 uppercase tracking-wider transition-colors"
           onClick={() => setInput(settings.workAddress.formatted)}
         >
-          📍 {settings.workAddress.label || 'Work'}
+          {settings.workAddress.label || 'Work'}
         </button>
       )}
     </form>

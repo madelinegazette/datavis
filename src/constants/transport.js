@@ -1,13 +1,13 @@
 export const MODES = {
-  bike:        { key: 'bike',        label: 'Personal Bike', icon: '🚲', color: '#50fa7b', gMapsMode: 'bicycling' },
-  walk:        { key: 'walk',        label: 'Walk',          icon: '🚶', color: '#8be9fd', gMapsMode: 'walking'   },
-  ctaBus:      { key: 'ctaBus',      label: 'CTA Bus',       icon: '🚌', color: '#ffb86c', gMapsMode: 'transit'   },
-  ctaTrain:    { key: 'ctaTrain',    label: 'CTA Train',     icon: '🚊', color: '#bd93f9', gMapsMode: 'transit'   },
-  limeScooter: { key: 'limeScooter', label: 'Lime Scooter',  icon: '🛴', color: '#f1fa8c', gMapsMode: 'bicycling' },
-  divvyBike:   { key: 'divvyBike',   label: 'Divvy Bike',    icon: '🚴', color: '#ff79c6', gMapsMode: 'bicycling' },
-  lyft:        { key: 'lyft',        label: 'Lyft',          icon: '🚗', color: '#ff5555', gMapsMode: 'driving'   },
-  driveAndPark:{ key: 'driveAndPark',label: 'Drive + Park',  icon: '🅿️', color: '#6272a4', gMapsMode: 'driving'   },
-  driveDropOff:{ key: 'driveDropOff',label: 'Drop-off',      icon: '🚙', color: '#f8f8f2', gMapsMode: 'driving'   },
+  bike:        { key: 'bike',        label: 'Personal Bike', code: 'BK',  color: '#50fa7b', gMapsMode: 'bicycling' },
+  walk:        { key: 'walk',        label: 'Walk',          code: 'WK',  color: '#8be9fd', gMapsMode: 'walking'   },
+  ctaBus:      { key: 'ctaBus',      label: 'CTA Bus',       code: 'BUS', color: '#ffb86c', gMapsMode: 'transit'   },
+  ctaTrain:    { key: 'ctaTrain',    label: 'CTA Train',     code: 'L',   color: '#bd93f9', gMapsMode: 'transit'   },
+  limeScooter: { key: 'limeScooter', label: 'Lime Scooter',  code: 'SC',  color: '#f1fa8c', gMapsMode: 'bicycling' },
+  divvyBike:   { key: 'divvyBike',   label: 'Divvy Bike',    code: 'DV',  color: '#ff79c6', gMapsMode: 'bicycling' },
+  lyft:        { key: 'lyft',        label: 'Lyft',          code: 'LY',  color: '#ff5555', gMapsMode: 'driving'   },
+  driveAndPark:{ key: 'driveAndPark',label: 'Drive + Park',  code: 'P+',  color: '#6272a4', gMapsMode: 'driving'   },
+  driveDropOff:{ key: 'driveDropOff',label: 'Drop-off',      code: 'DR',  color: '#f8f8f2', gMapsMode: 'driving'   },
 }
 
 export const MODE_KEYS = Object.keys(MODES)

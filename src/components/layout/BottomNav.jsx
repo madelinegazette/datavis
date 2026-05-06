@@ -1,9 +1,9 @@
 import { NavLink } from 'react-router-dom'
 
 const tabs = [
-  { to: '/',         icon: '🏠', label: 'Dashboard' },
-  { to: '/history',  icon: '📊', label: 'History'   },
-  { to: '/settings', icon: '⚙️', label: 'Settings'  },
+  { to: '/',         label: 'Commute'  },
+  { to: '/history',  label: 'History'  },
+  { to: '/settings', label: 'Settings' },
 ]
 
 export function BottomNav() {
@@ -15,13 +15,14 @@ export function BottomNav() {
           to={tab.to}
           end={tab.to === '/'}
           className={({ isActive }) =>
-            `flex-1 flex flex-col items-center gap-1 py-3 text-xs transition-colors ${
-              isActive ? 'text-dracula-purple' : 'text-dracula-comment hover:text-dracula-fg'
+            `flex-1 flex items-center justify-center py-3.5 font-mono text-xs uppercase tracking-widest transition-colors border-t-2 ${
+              isActive
+                ? 'text-dracula-purple border-dracula-purple'
+                : 'text-dracula-comment border-transparent hover:text-dracula-fg'
             }`
           }
         >
-          <span className="text-xl leading-none">{tab.icon}</span>
-          <span className="font-medium">{tab.label}</span>
+          {tab.label}
         </NavLink>
       ))}
     </nav>

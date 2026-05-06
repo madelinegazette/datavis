@@ -3,22 +3,17 @@ export function WearRecommendation({ items }) {
 
   return (
     <div className="px-4 py-3 border-b border-dracula-line">
-      <div className="text-xs text-dracula-comment font-mono uppercase tracking-wider mb-2">
-        What to bring
+      <div className="text-xs font-mono uppercase tracking-[0.15em] text-dracula-comment mb-2">
+        Bring
       </div>
-      <div className="flex flex-wrap gap-2">
+      <div className="flex flex-col gap-1">
         {items.map((item, i) => (
-          <span
+          <div
             key={i}
-            className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1.5 rounded-full border ${
-              item.urgent
-                ? 'bg-dracula-red/10 border-dracula-red/40 text-dracula-red'
-                : 'bg-dracula-line/20 border-dracula-line text-dracula-fg'
-            }`}
+            className={`text-xs font-mono ${item.urgent ? 'text-dracula-red' : 'text-dracula-fg'}`}
           >
-            <span>{item.icon}</span>
-            <span>{item.text}</span>
-          </span>
+            — {item.text}
+          </div>
         ))}
       </div>
     </div>

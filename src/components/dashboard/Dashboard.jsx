@@ -245,8 +245,8 @@ export function Dashboard() {
       <DestinationBar onGo={handleGo} />
 
       {!settings.apiKeys.openWeatherMap && (
-        <div className="mx-4 mt-3 text-xs text-dracula-comment bg-dracula-line/20 rounded-lg px-3 py-2">
-          💡 Add API keys in <strong>Settings</strong> to enable weather, routes, and real-time transit.
+        <div className="mx-4 mt-3 text-xs text-dracula-comment font-mono bg-dracula-line/10 border border-dracula-line/30 px-3 py-2">
+          Add API keys in <strong className="text-dracula-fg">Settings</strong> to enable weather, routes, and real-time transit.
         </div>
       )}
 
@@ -260,16 +260,15 @@ export function Dashboard() {
 
       <div className="px-4 mt-4">
         {routeLoading && (
-          <div className="flex flex-col items-center gap-3 py-10 text-dracula-comment">
+          <div className="flex flex-col items-center gap-3 py-12 text-dracula-comment">
             <Spinner size="lg" />
-            <span className="text-sm">Calculating best routes…</span>
+            <span className="text-xs font-mono uppercase tracking-widest">Calculating routes</span>
           </div>
         )}
 
         {!routeLoading && rankedOptions.length === 0 && !error && (
-          <div className="text-center py-10 text-dracula-comment">
-            <div className="text-4xl mb-3">🗺️</div>
-            <div className="text-sm">Enter your destination above to see commute options.</div>
+          <div className="py-12 text-dracula-comment font-mono text-xs uppercase tracking-widest text-center">
+            Enter destination to see options.
           </div>
         )}
 
@@ -280,14 +279,14 @@ export function Dashboard() {
                 {rankedOptions.length} options ranked
               </div>
               {pricingInfo && (
-                <div className="text-xs text-dracula-comment mono">
-                  ⛽ ${pricingInfo.gasPricePerGallon?.toFixed(2)}/gal · {pricingInfo.accordMpg}mpg
+                <div className="text-xs text-dracula-comment font-mono tracking-wider">
+                  ${pricingInfo.gasPricePerGallon?.toFixed(2)}/gal · {pricingInfo.accordMpg}mpg
                 </div>
               )}
             </div>
             {acceptedMode && (
-              <div className="text-xs text-dracula-green bg-dracula-green/10 border border-dracula-green/30 rounded-lg px-3 py-2">
-                ✓ Trip logged — have a great commute!
+              <div className="text-xs font-mono text-dracula-green bg-dracula-green/10 border border-dracula-green/30 px-3 py-2 uppercase tracking-wider">
+                Trip logged — safe travels.
               </div>
             )}
             {rankedOptions.map((opt, i) => (

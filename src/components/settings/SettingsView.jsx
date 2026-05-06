@@ -118,19 +118,19 @@ export function SettingsView() {
 
       <Section title="Locations">
         <AddressField
-          label="🏠 Home Address"
+          label="Home Address"
           value={settings.homeAddress}
           apiKey={keys.googleMaps}
           onSave={addr => updateNested('homeAddress', { ...addr, label: 'Home' })}
         />
         <AddressField
-          label="💼 Work Address"
+          label="Work Address"
           value={settings.workAddress}
           apiKey={keys.googleMaps}
           onSave={addr => updateNested('workAddress', { ...addr, label: 'Work' })}
         />
         <div className="mb-0">
-          <label className="text-xs text-dracula-comment block mb-1">⏰ Preferred Departure Time</label>
+          <label className="text-xs text-dracula-comment block mb-1">Preferred Departure Time</label>
           <input
             type="time"
             value={settings.preferredDepartureTime}
@@ -173,15 +173,22 @@ export function SettingsView() {
               <button
                 key={k}
                 onClick={() => updateNested('enabledModes', { [k]: !enabled })}
-                className={`flex flex-col items-center gap-1 p-2 rounded-lg border text-xs transition-all ${
+                className={`flex items-center gap-2 p-2 border text-xs transition-all ${
                   enabled
-                    ? 'bg-dracula-line/20 border-2'
-                    : 'border-dracula-line text-dracula-comment opacity-50'
+                    ? 'border'
+                    : 'border-dracula-line/40 text-dracula-comment opacity-40'
                 }`}
-                style={enabled ? { borderColor: m.color, color: m.color } : {}}
+                style={enabled ? { borderColor: m.color } : {}}
               >
-                <span className="text-xl">{m.icon}</span>
-                <span className="font-medium leading-tight text-center">{m.label}</span>
+                <span
+                  className="font-mono font-bold text-xs w-6 flex-shrink-0 text-center"
+                  style={enabled ? { color: m.color } : {}}
+                >
+                  {m.code}
+                </span>
+                <span className="font-mono text-xs leading-tight text-left" style={enabled ? { color: m.color } : {}}>
+                  {m.label}
+                </span>
               </button>
             )
           })}
@@ -228,9 +235,9 @@ export function SettingsView() {
       <Section title="Data">
         <button
           onClick={handleClearData}
-          className="text-sm px-4 py-2 rounded-lg border border-dracula-red/50 text-dracula-red hover:bg-dracula-red/10 transition-colors"
+          className="text-xs font-mono uppercase tracking-wider px-4 py-2 border border-dracula-red/50 text-dracula-red hover:bg-dracula-red/10 transition-colors"
         >
-          🗑 Clear All Data
+          Clear All Data
         </button>
         <p className="text-xs text-dracula-comment mt-2">Deletes all trips and settings from this device.</p>
       </Section>

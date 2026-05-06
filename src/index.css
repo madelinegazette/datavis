@@ -49,21 +49,21 @@ body {
 
 @layer components {
   .card {
-    @apply bg-dracula-line/30 border border-dracula-line rounded-xl p-4;
+    @apply bg-dracula-bgDark border border-dracula-line/40 p-4;
   }
   .btn-primary {
-    @apply bg-dracula-purple text-dracula-bg font-semibold px-4 py-2 rounded-lg active:opacity-80 transition-opacity;
+    @apply bg-dracula-purple text-dracula-bg font-mono font-bold text-xs uppercase tracking-widest px-4 py-2 active:opacity-80 transition-opacity;
   }
   .btn-ghost {
-    @apply text-dracula-comment hover:text-dracula-fg px-3 py-2 rounded-lg transition-colors;
+    @apply text-dracula-comment hover:text-dracula-fg px-3 py-2 font-mono text-xs uppercase tracking-wider transition-colors;
   }
   .mono {
     font-family: 'JetBrains Mono', 'Fira Code', monospace;
   }
   .score-bar {
-    @apply h-1 rounded-full bg-dracula-line overflow-hidden;
+    @apply h-px bg-dracula-line overflow-hidden;
   }
   .score-bar-fill {
-    @apply h-full rounded-full transition-all duration-500;
+    @apply h-px transition-all duration-500;
   }
 }

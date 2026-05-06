@@ -17,55 +17,52 @@ export function TransportCard({ option, isTop, destination, origin, onAccept, ac
   })()
 
   return (
-    <div
-      className={`relative rounded-xl border transition-all ${
-        isTop
-          ? 'border-2 bg-dracula-line/20'
-          : 'border-dracula-line bg-dracula-line/10 hover:bg-dracula-line/20'
-      }`}
-      style={{ borderColor: isTop ? color : undefined }}
-    >
-      {isTop && (
-        <div
-          className="absolute -top-3 left-4 text-xs font-mono font-bold px-2 py-0.5 rounded-full"
-          style={{ background: color, color: '#282a36' }}
-        >
-          TOP PICK
-        </div>
-      )}
-      <div className="p-4">
+    <div className="flex overflow-hidden border border-dracula-line/40 bg-dracula-bgDark">
+      {/* Bold color panel */}
+      <div
+        className="w-14 flex-shrink-0 flex flex-col items-center justify-center gap-1"
+        style={{ background: color }}
+      >
+        <span className="font-mono font-bold text-base leading-none" style={{ color: '#1e2029' }}>
+          {meta.code}
+        </span>
+        {isTop && (
+          <span className="text-[7px] font-mono font-bold uppercase tracking-widest leading-none" style={{ color: '#1e2029' }}>
+            TOP
+          </span>
+        )}
+      </div>
+
+      {/* Content */}
+      <div className="flex-1 min-w-0 p-3">
         {/* Header row */}
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <span className="text-2xl">{meta.icon}</span>
-            <div>
-              <div className="font-semibold text-dracula-fg text-sm">{meta.label}</div>
-              {option.departures?.length > 0 && (
-                <div className="text-xs text-dracula-comment mono">
-                  Next: {option.departures.slice(0, 3).map(d => `${d}min`).join(' · ')}
-                </div>
-              )}
+        <div className="flex items-start justify-between mb-2">
+          <div>
+            <div className="font-mono font-semibold text-dracula-fg text-sm tracking-wide uppercase">
+              {meta.label}
             </div>
+            {option.departures?.length > 0 && (
+              <div className="text-xs text-dracula-comment mono mt-0.5">
+                {option.departures.slice(0, 3).map(d => `${d}m`).join(' · ')}
+              </div>
+            )}
           </div>
-          <div className="text-right">
-            <div className="font-mono font-bold text-lg" style={{ color }}>
+          <div className="text-right flex-shrink-0 ml-2">
+            <div className="font-mono font-bold text-lg leading-none" style={{ color }}>
               {option.durationMinutes ? minutesToDisplay(option.durationMinutes) : '—'}
             </div>
-            <div className="text-xs text-dracula-comment">
+            <div className="text-xs text-dracula-comment mono mt-0.5">
               {formatCost(option.estimatedCost)}
             </div>
           </div>
         </div>
 
         {/* Score bar */}
-        <div className="score-bar mb-3">
-          <div
-            className="score-bar-fill"
-            style={{ width: `${option.score}%`, background: color }}
-          />
+        <div className="h-px bg-dracula-line mb-2">
+          <div className="h-px transition-all duration-500" style={{ width: `${option.score}%`, background: color }} />
         </div>
 
-        {/* Detail row */}
+        {/* Detail + actions row */}
         <div className="flex items-center justify-between">
           <div className="flex gap-3 text-xs text-dracula-comment mono">
             {option.distanceMiles && <span>{formatMiles(option.distanceMiles)}</span>}
@@ -78,34 +75,33 @@ export function TransportCard({ option, isTop, destination, origin, onAccept, ac
                 href={deepLink}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-xs px-3 py-1 rounded-full border transition-colors"
-                style={{ borderColor: `${color}66`, color }}
+                className="text-xs font-mono uppercase tracking-wider px-2 py-1 border transition-colors"
+                style={{ borderColor: `${color}55`, color }}
                 onClick={e => e.stopPropagation()}
               >
-                Open →
+                Open
               </a>
             )}
             {onAccept && (
               <button
                 onClick={() => onAccept(option)}
                 disabled={accepted}
-                className="text-xs px-3 py-1 rounded-full font-semibold transition-all"
+                className="text-xs font-mono uppercase tracking-wider px-2 py-1 border transition-all"
                 style={accepted
-                  ? { background: '#50fa7b22', color: '#50fa7b', border: '1px solid #50fa7b66' }
-                  : { background: `${color}22`, color, border: `1px solid ${color}88` }
+                  ? { borderColor: '#50fa7b66', color: '#50fa7b' }
+                  : { borderColor: `${color}66`, color }
                 }
               >
-                {accepted ? '✓ Logged' : "I'll take this"}
+                {accepted ? 'Logged' : 'Take this'}
               </button>
             )}
           </div>
         </div>
 
-        {/* Alerts */}
+        {/* Alert */}
         {option.alerts?.length > 0 && (
-          <div className="mt-2 text-xs text-dracula-orange flex items-center gap-1">
-            <span>⚠️</span>
-            <span>{option.alerts[0]}</span>
+          <div className="mt-2 text-xs text-dracula-orange font-mono">
+            / {option.alerts[0]}
           </div>
         )}
       </div>

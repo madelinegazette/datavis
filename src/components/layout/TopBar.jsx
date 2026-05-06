@@ -5,21 +5,20 @@ export function TopBar() {
 
   return (
     <header className="flex items-center justify-between px-4 py-3 border-b border-dracula-line bg-dracula-bgDark safe-top">
-      <div className="flex items-center gap-2">
-        <span className="text-xl">🚇</span>
-        <span className="font-mono font-semibold text-dracula-purple tracking-wider text-sm">
-          COMMUTE
-        </span>
-      </div>
-      <div className="flex items-center gap-3 text-dracula-comment text-xs mono">
+      <span className="font-mono font-bold tracking-[0.2em] text-sm text-dracula-fg">
+        CCD
+      </span>
+      <div className="flex items-center gap-4 font-mono text-xs tracking-wider">
         {locationError ? (
-          <span title={locationError} className="text-dracula-orange">📍 Manual</span>
+          <span className="text-dracula-orange uppercase">Manual</span>
         ) : location ? (
-          <span className="text-dracula-green">📍 Located</span>
+          <span className="text-dracula-green uppercase">Located</span>
         ) : (
-          <span className="animate-pulse">📍 Locating…</span>
+          <span className="text-dracula-comment uppercase animate-pulse">Locating</span>
         )}
-        {weatherLoading && <span className="animate-pulse">🌡 Loading…</span>}
+        {weatherLoading && (
+          <span className="text-dracula-comment uppercase animate-pulse">Weather</span>
+        )}
         {weather && !weatherLoading && (
           <span className="text-dracula-cyan">{Math.round(weather.tempF)}°F</span>
         )}

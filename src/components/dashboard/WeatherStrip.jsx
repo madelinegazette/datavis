@@ -1,12 +1,10 @@
 import { useApp } from '../../context/AppContext'
 import { formatTemp } from '../../utils/format'
 
-const OWM_ICON = (code) => `https://openweathermap.org/img/wn/${code}.png`
-
 function precipLabel(weather) {
   if (weather.precipMmHour > 2.5) return 'Heavy rain'
-  if (weather.precipChance > 0.6) return 'Likely rain'
-  if (weather.precipChance > 0.3) return 'Chance of rain'
+  if (weather.precipChance > 0.6) return 'Rain likely'
+  if (weather.precipChance > 0.3) return 'Rain possible'
   return null
 }
 
@@ -16,7 +14,7 @@ export function WeatherStrip() {
   if (weatherLoading) {
     return (
       <div className="px-4 py-3 border-b border-dracula-line animate-pulse">
-        <div className="h-10 bg-dracula-line/30 rounded-lg" />
+        <div className="h-8 bg-dracula-line/20" />
       </div>
     )
   }
@@ -26,32 +24,26 @@ export function WeatherStrip() {
   const precip = precipLabel(weather)
 
   return (
-    <div className="px-4 py-3 border-b border-dracula-line">
-      <div className="flex items-center gap-3">
-        {weather.conditionIcon && (
-          <img src={OWM_ICON(weather.conditionIcon)} alt={weather.condition} className="w-10 h-10" />
+    <div className="px-4 py-2.5 border-b border-dracula-line flex items-center gap-5 overflow-x-auto">
+      <span className="font-mono font-bold text-2xl text-dracula-cyan flex-shrink-0">
+        {formatTemp(weather.tempF)}
+      </span>
+      <div className="flex items-center gap-4 text-xs font-mono uppercase tracking-wider text-dracula-comment flex-shrink-0">
+        <span className="text-dracula-fg">{weather.condition}</span>
+        <span>Feels {formatTemp(weather.feelsLikeF)}</span>
+        {weather.windMph > 5 && <span>{weather.windMph} mph wind</span>}
+        {precip && <span className="text-dracula-orange">{precip}</span>}
+        {weather.precipChance > 0 && (
+          <span>{Math.round(weather.precipChance * 100)}% precip</span>
         )}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-baseline gap-2">
-            <span className="text-2xl font-mono font-semibold text-dracula-cyan">
-              {formatTemp(weather.tempF)}
-            </span>
-            <span className="text-dracula-comment text-sm">
-              Feels {formatTemp(weather.feelsLikeF)}
-            </span>
-          </div>
-          <div className="text-dracula-comment text-xs capitalize flex gap-3 mt-0.5">
-            <span>{weather.condition}</span>
-            {weather.windMph > 5 && <span>💨 {weather.windMph}mph</span>}
-            {precip && <span className="text-dracula-blue">{precip}</span>}
-          </div>
-        </div>
-        <div className="text-right text-xs text-dracula-comment">
-          {weather.hourly?.slice(0, 3).map((h, i) => (
-            <div key={i} className="mono">{formatTemp(h.tempF)}</div>
+      </div>
+      {weather.hourly?.length > 0 && (
+        <div className="ml-auto flex gap-3 text-xs font-mono text-dracula-comment flex-shrink-0">
+          {weather.hourly.slice(0, 3).map((h, i) => (
+            <span key={i}>{formatTemp(h.tempF)}</span>
           ))}
         </div>
-      </div>
+      )}
     </div>
   )
 }
