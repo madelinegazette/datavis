@@ -17,9 +17,16 @@ import { rankOptions } from '../../services/scoring'
 import { wearRecommendation } from '../../services/wearRecommendation'
 import { latenessScore } from '../../utils/time'
 import { MODES } from '../../constants/transport'
+import { haversineDistance } from '../../utils/geo'
 
-function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings) {
+function isAtWork(origin, workAddress) {
+  if (!origin || !workAddress?.lat) return false
+  return haversineDistance(origin.lat, origin.lng, workAddress.lat, workAddress.lng) < 0.15
+}
+
+function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin) {
   const enabled = settings.enabledModes
+  const atWork = isAtWork(origin, settings.workAddress)
   const opts = []
 
   if (enabled.bike && directions.biking) {
@@ -79,15 +86,15 @@ function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, se
     })
   }
 
-  // Driving options
+  // Driving options — suppressed if user is already at work (no car there)
   if (directions.driving) {
     if (enabled.lyft) {
       opts.push({ mode: 'lyft', ...directions.driving, walkMinutes: 0, waitMinutes: 5, transfers: 0 })
     }
-    if (enabled.driveAndPark) {
+    if (!atWork && enabled.driveAndPark) {
       opts.push({ mode: 'driveAndPark', ...directions.driving, walkMinutes: 3, waitMinutes: 0, transfers: 0 })
     }
-    if (enabled.driveDropOff) {
+    if (!atWork && enabled.driveDropOff) {
       opts.push({ mode: 'driveDropOff', ...directions.driving, walkMinutes: 1, waitMinutes: 0, transfers: 0 })
     }
   }
@@ -174,7 +181,7 @@ export function Dashboard() {
         } catch { /* ignore */ }
       }
 
-      const rawOptions = buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings)
+      const rawOptions = buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin)
       const lateness = latenessScore(settings.preferredDepartureTime)
       const ranked = rankOptions(rawOptions, weather, crimeScore, settings, lateness)
       setRankedOptions(ranked)

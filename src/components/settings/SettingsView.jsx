@@ -93,8 +93,8 @@ export function SettingsView() {
   const [keysSaved, setKeysSaved] = useState(false)
   const [ratesSaved, setRatesSaved] = useState(false)
 
-  function saveKeys() {
-    updateNested('apiKeys', keys)
+  function saveKeys(updatedKeys) {
+    updateNested('apiKeys', updatedKeys)
     setKeysSaved(true)
     setTimeout(() => setKeysSaved(false), 1500)
   }
@@ -153,22 +153,15 @@ export function SettingsView() {
             key={key}
             label={label}
             value={keys[key]}
-            onChange={v => setKeys(k => ({ ...k, [key]: v }))}
+            onChange={v => { const updated = { ...keys, [key]: v }; setKeys(updated); saveKeys(updated) }}
             type="password"
             placeholder="Paste key here…"
             hint={hint}
           />
         ))}
-        <button
-          onClick={saveKeys}
-          className={`text-sm px-4 py-2 rounded-lg border transition-colors ${
-            keysSaved
-              ? 'bg-dracula-green/20 border-dracula-green text-dracula-green'
-              : 'border-dracula-purple text-dracula-purple hover:bg-dracula-purple/10'
-          }`}
-        >
-          {keysSaved ? '✓ Keys Saved' : 'Save API Keys'}
-        </button>
+        {keysSaved && (
+          <p className="text-xs text-dracula-green mt-1">✓ Keys saved automatically</p>
+        )}
       </Section>
 
       <Section title="Transport Modes">

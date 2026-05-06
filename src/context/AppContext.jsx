@@ -22,7 +22,7 @@ export function AppProvider({ children }) {
 
   return (
     <AppContext.Provider value={{
-      settings, updateSettings, updateSettingsNested,
+      settings, updateSettings, updateNested: updateSettingsNested,
       trips, addTrip, removeTrip, exportTrips,
       weather, setWeather: updateWeather, weatherLoading, setWeatherLoading,
       location, setLocation, locationError, setLocationError,
