@@ -25,10 +25,10 @@ export const DEFAULT_SETTINGS = {
   costRates: {
     gasPerMile: 0.21,
     parkingCostDollars: 20,
-    lyftEstimatePerMile: 1.80,
+    lyftEstimatePerMile: 1.85,
     limeUnlockCost: 1.00,
-    limeRatePerMin: 0.32,
-    divvySingleRideCost: 1.00,
+    limeRatePerMin: 0.39,
+    divvySingleRideCost: 3.30,
   },
   preferredDepartureTime: '08:30',
 }

@@ -15,32 +15,30 @@ import { fetchNearbyDivvyStations } from '../../services/api/divvy'
 import { fetchCrimeScore } from '../../services/api/chicagoCrime'
 import { rankOptions } from '../../services/scoring'
 import { wearRecommendation } from '../../services/wearRecommendation'
-import { fetchLivePricing } from '../../services/api/livePricing'
 import { latenessScore } from '../../utils/time'
-import { MODES } from '../../constants/transport'
 import { haversineDistance } from '../../utils/geo'
 
-function isAtWork(origin, workAddress) {
-  if (!origin || !workAddress?.lat) return false
-  return haversineDistance(origin.lat, origin.lng, workAddress.lat, workAddress.lng) < 0.15
+function isAtOrigin(origin, address) {
+  if (!origin || !address?.lat) return false
+  return haversineDistance(origin.lat, origin.lng, address.lat, address.lng) < 0.15
 }
 
-function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin, pricing) {
+function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin) {
   const enabled = settings.enabledModes
-  const atWork = isAtWork(origin, settings.workAddress)
+  const rates = settings.costRates
+  const atWork = isAtOrigin(origin, settings.workAddress)
   const opts = []
 
   if (enabled.bike && directions.biking) {
-    opts.push({ mode: 'bike', ...directions.biking, walkMinutes: 0, waitMinutes: 0, transfers: 0, precomputedCost: 0.10 })
+    opts.push({ mode: 'bike', ...directions.biking, walkMinutes: 0, waitMinutes: 0, transfers: 0 })
   }
   if (enabled.walk && directions.walking) {
-    opts.push({ mode: 'walk', ...directions.walking, walkMinutes: 0, waitMinutes: 0, transfers: 0, precomputedCost: 0.10 })
+    opts.push({ mode: 'walk', ...directions.walking, walkMinutes: 0, waitMinutes: 0, transfers: 0 })
   }
   if (enabled.limeScooter && directions.biking) {
-    opts.push({ mode: 'limeScooter', ...directions.biking, walkMinutes: 2, waitMinutes: 2, transfers: 0, precomputedCost: pricing?.limeTotal })
+    const cost = rates.limeUnlockCost + rates.limeRatePerMin * (directions.biking.durationMinutes ?? 20)
+    opts.push({ mode: 'limeScooter', ...directions.biking, walkMinutes: 2, waitMinutes: 2, transfers: 0, precomputedCost: cost })
   }
-
-  // Divvy
   if (enabled.divvyBike && directions.biking) {
     const station = divvyStations.find(s => s.bikesAvailable > 0)
     const walkToStation = station ? Math.round(station.distanceMiles * 20) : 5
@@ -51,55 +49,49 @@ function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, se
       walkMinutes: walkToStation,
       waitMinutes: 0,
       transfers: 0,
-      precomputedCost: pricing?.divvyPerRide,
+      precomputedCost: rates.divvySingleRideCost,
       alerts: divvyStations.length === 0 ? ['No Divvy stations nearby'] :
                station ? [] : ['No bikes available at nearest station'],
     })
   }
-
-  // CTA Train
   if (enabled.ctaTrain && directions.transit) {
     const trainDeps = ctaArrivals.slice(0, 3).map(a => a.minutesAway)
-    const waitMin = trainDeps[0] ?? 8
     opts.push({
       mode: 'ctaTrain',
       ...directions.transit,
       walkMinutes: 5,
-      waitMinutes: waitMin,
+      waitMinutes: trainDeps[0] ?? 8,
       transfers: directions.transit.transitDetails?.length > 1 ? 1 : 0,
       departures: trainDeps,
       precomputedCost: 2.50,
       alerts: ctaArrivals.some(a => a.isDelayed) ? ['Delays reported on this line'] : [],
     })
   }
-
-  // CTA Bus
   if (enabled.ctaBus && directions.transit) {
     const busDeps = busPredictions.slice(0, 3).map(p => p.minutesAway)
-    const waitMin = busDeps[0] ?? 10
     opts.push({
       mode: 'ctaBus',
       ...directions.transit,
       durationMinutes: (directions.transit.durationMinutes ?? 0) + 5,
       walkMinutes: 3,
-      waitMinutes: waitMin,
+      waitMinutes: busDeps[0] ?? 10,
       transfers: 0,
       departures: busDeps,
       precomputedCost: 2.50,
       alerts: busPredictions.some(p => p.isDelayed) ? ['Bus delays reported'] : [],
     })
   }
-
-  // Driving options — suppressed if user is already at work (no car there)
   if (directions.driving) {
+    const gasCost = (directions.driving.distanceMiles ?? 4) * rates.gasPerMile
     if (enabled.lyft) {
-      opts.push({ mode: 'lyft', ...directions.driving, walkMinutes: 0, waitMinutes: 5, transfers: 0, precomputedCost: pricing?.lyftEstimate })
+      const lyftCost = Math.max(5, 1.80 + 1.85 * (directions.driving.distanceMiles ?? 4) + 0.30 * (directions.driving.durationMinutes ?? 20))
+      opts.push({ mode: 'lyft', ...directions.driving, walkMinutes: 0, waitMinutes: 5, transfers: 0, precomputedCost: lyftCost })
     }
     if (!atWork && enabled.driveAndPark) {
-      opts.push({ mode: 'driveAndPark', ...directions.driving, walkMinutes: 3, waitMinutes: 0, transfers: 0, precomputedCost: pricing?.driveAndParkTotal })
+      opts.push({ mode: 'driveAndPark', ...directions.driving, walkMinutes: 3, waitMinutes: 0, transfers: 0, precomputedCost: gasCost + rates.parkingCostDollars })
     }
     if (!atWork && enabled.driveDropOff) {
-      opts.push({ mode: 'driveDropOff', ...directions.driving, walkMinutes: 1, waitMinutes: 0, transfers: 0, precomputedCost: pricing?.driveDropOffTotal })
+      opts.push({ mode: 'driveDropOff', ...directions.driving, walkMinutes: 1, waitMinutes: 0, transfers: 0, precomputedCost: gasCost * 2 })
     }
   }
 
@@ -112,18 +104,15 @@ export function Dashboard() {
   const [error, setError] = useState(null)
   const [wearItems, setWearItems] = useState([])
   const [acceptedMode, setAcceptedMode] = useState(null)
-  const [pricingInfo, setPricingInfo] = useState(null)
 
   const fallback = settings.homeAddress ?? { lat: 41.8781, lng: -87.6298 }
   const geo = useGeolocation(fallback)
 
-  // Sync geolocation into context
   useEffect(() => {
     if (geo.location) setLocation(geo.location)
     if (geo.error) setLocationError(geo.error)
   }, [geo.location, geo.error])
 
-  // Load weather whenever location is known
   useEffect(() => {
     if (!geo.location || !settings.apiKeys.openWeatherMap) return
     setWeatherLoading(true)
@@ -132,7 +121,6 @@ export function Dashboard() {
       .catch(() => setWeatherLoading(false))
   }, [geo.location?.lat, geo.location?.lng, settings.apiKeys.openWeatherMap])
 
-  // Update wear recommendation when weather or top option changes
   useEffect(() => {
     if (weather && rankedOptions.length > 0) {
       setWearItems(wearRecommendation(weather, rankedOptions[0].mode))
@@ -148,7 +136,7 @@ export function Dashboard() {
       try {
         resolvedDest = await geocodeAddress(dest.formatted, settings.apiKeys.googleMaps)
       } catch {
-        setError('Could not find that address. Try again.')
+        setError('Could not geocode that address. Check your Google Maps API key.')
         return
       }
     }
@@ -158,7 +146,7 @@ export function Dashboard() {
     setError(null)
 
     try {
-      let directions, crimeScore, divvyStations, pricing
+      let directions, crimeScore, divvyStations
 
       if (isDemo) {
         directions = {
@@ -169,28 +157,14 @@ export function Dashboard() {
         }
         crimeScore = 0.62
         divvyStations = [{ bikesAvailable: 3, distanceMiles: 0.15 }]
-        pricing = {
-          gasPricePerGallon: 3.45, gasPerMile: 3.45 / 26, accordMpg: 26,
-          divvyPerRide: 3.30, limeTotal: 9.58, lyftEstimate: 14.40,
-          driveGas: (3.45 / 26) * 4.3,
-          driveAndParkTotal: (3.45 / 26) * 4.3 + 20,
-          driveDropOffTotal: (3.45 / 26) * 4.3 * 2,
-        }
-        setPricingInfo(pricing)
       } else {
         ;[directions, crimeScore, divvyStations] = await Promise.all([
           fetchAllDirections(origin, resolvedDest, settings.apiKeys.googleMaps),
           fetchCrimeScore(origin, resolvedDest),
           fetchNearbyDivvyStations(origin.lat, origin.lng),
         ])
-        const drivingDist = directions.driving?.distanceMiles ?? 4
-        const drivingDur  = directions.driving?.durationMinutes ?? 20
-        const bikingDur   = directions.biking?.durationMinutes ?? 20
-        pricing = await fetchLivePricing(drivingDist, Math.max(drivingDur, bikingDur))
-        setPricingInfo(pricing)
       }
 
-      // CTA real-time (optional, fail silently)
       let ctaArrivals = isDemo ? [{ minutesAway: 4 }, { minutesAway: 11 }, { minutesAway: 19 }] : []
       let busPredictions = isDemo ? [{ minutesAway: 6 }, { minutesAway: 14 }] : []
       if (!isDemo && settings.apiKeys.ctaTrains) {
@@ -210,12 +184,12 @@ export function Dashboard() {
         } catch { /* ignore */ }
       }
 
-      const rawOptions = buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin, pricing)
+      const rawOptions = buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin)
       const lateness = latenessScore(settings.preferredDepartureTime)
       const ranked = rankOptions(rawOptions, weather, crimeScore, settings, lateness)
       setRankedOptions(ranked)
     } catch (err) {
-      setError('Failed to load routes. Check your API key and connection.')
+      setError('Failed to load routes. Check your connection.')
     } finally {
       setRouteLoading(false)
     }
@@ -246,13 +220,6 @@ export function Dashboard() {
     setTimeout(() => setAcceptedMode(null), 3000)
   }, [geo.location, destination, weather, addTrip])
 
-  // Auto-load if work address is saved and we have an API key
-  useEffect(() => {
-    if (settings.workAddress && settings.apiKeys.googleMaps && geo.location && !rankedOptions.length && !routeLoading) {
-      handleGo(settings.workAddress)
-    }
-  }, [geo.location?.lat, geo.location?.lng, settings.apiKeys.googleMaps])
-
   const topMode = rankedOptions[0]?.mode
 
   return (
@@ -261,8 +228,8 @@ export function Dashboard() {
       <DestinationBar onGo={handleGo} />
 
       {!settings.apiKeys.googleMaps && (
-        <div className="mx-4 mt-3 text-xs text-dracula-comment font-mono bg-dracula-line/10 border border-dracula-line/30 px-3 py-2">
-          Demo mode — add API keys in <strong className="text-dracula-fg">Settings</strong> for live routes and weather.
+        <div className="mx-4 mt-3 text-xs text-dracula-comment font-mono bg-dracula-line/10 border-l-2 border-dracula-comment/40 px-3 py-2">
+          Demo mode — add a Google Maps key in Settings for live routes.
         </div>
       )}
 
@@ -284,24 +251,17 @@ export function Dashboard() {
 
         {!routeLoading && rankedOptions.length === 0 && !error && (
           <div className="py-12 text-dracula-comment font-mono text-xs uppercase tracking-widest text-center">
-            Enter destination to see options.
+            Enter a destination above.
           </div>
         )}
 
         {!routeLoading && rankedOptions.length > 0 && (
           <div className="flex flex-col gap-3">
-            <div className="flex items-center justify-between">
-              <div className="text-xs text-dracula-comment font-mono uppercase tracking-wider">
-                {rankedOptions.length} options ranked
-              </div>
-              {pricingInfo && (
-                <div className="text-xs text-dracula-comment font-mono tracking-wider">
-                  ${pricingInfo.gasPricePerGallon?.toFixed(2)}/gal · {pricingInfo.accordMpg}mpg
-                </div>
-              )}
+            <div className="text-xs text-dracula-comment font-mono uppercase tracking-wider">
+              {rankedOptions.length} options ranked
             </div>
             {acceptedMode && (
-              <div className="text-xs font-mono text-dracula-green bg-dracula-green/10 border border-dracula-green/30 px-3 py-2 uppercase tracking-wider">
+              <div className="text-xs font-mono text-dracula-green border-l-2 border-dracula-green px-3 py-2 uppercase tracking-wider">
                 Trip logged — safe travels.
               </div>
             )}
