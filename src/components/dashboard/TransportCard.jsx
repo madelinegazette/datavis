@@ -3,7 +3,7 @@ import { minutesToDisplay } from '../../utils/time'
 import { formatCost, formatMiles } from '../../utils/format'
 import { buildLyftLink, buildLimeLink, buildGoogleMapsLink } from '../../utils/deepLinks'
 
-export function TransportCard({ option, isTop, destination, origin }) {
+export function TransportCard({ option, isTop, destination, origin, onAccept, accepted }) {
   const meta = MODES[option.mode]
   if (!meta) return null
 
@@ -72,18 +72,33 @@ export function TransportCard({ option, isTop, destination, origin }) {
             {option.walkMinutes > 0 && <span>+{option.walkMinutes}m walk</span>}
             {option.waitMinutes > 0 && <span>{option.waitMinutes}m wait</span>}
           </div>
-          {deepLink && (
-            <a
-              href={deepLink}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-xs px-3 py-1 rounded-full border transition-colors"
-              style={{ borderColor: `${color}66`, color }}
-              onClick={e => e.stopPropagation()}
-            >
-              Open →
-            </a>
-          )}
+          <div className="flex items-center gap-2">
+            {deepLink && (
+              <a
+                href={deepLink}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-xs px-3 py-1 rounded-full border transition-colors"
+                style={{ borderColor: `${color}66`, color }}
+                onClick={e => e.stopPropagation()}
+              >
+                Open →
+              </a>
+            )}
+            {onAccept && (
+              <button
+                onClick={() => onAccept(option)}
+                disabled={accepted}
+                className="text-xs px-3 py-1 rounded-full font-semibold transition-all"
+                style={accepted
+                  ? { background: '#50fa7b22', color: '#50fa7b', border: '1px solid #50fa7b66' }
+                  : { background: `${color}22`, color, border: `1px solid ${color}88` }
+                }
+              >
+                {accepted ? '✓ Logged' : "I'll take this"}
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Alerts */}

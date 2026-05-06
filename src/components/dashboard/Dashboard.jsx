@@ -15,6 +15,7 @@ import { fetchNearbyDivvyStations } from '../../services/api/divvy'
 import { fetchCrimeScore } from '../../services/api/chicagoCrime'
 import { rankOptions } from '../../services/scoring'
 import { wearRecommendation } from '../../services/wearRecommendation'
+import { fetchLivePricing } from '../../services/api/livePricing'
 import { latenessScore } from '../../utils/time'
 import { MODES } from '../../constants/transport'
 import { haversineDistance } from '../../utils/geo'
@@ -24,25 +25,25 @@ function isAtWork(origin, workAddress) {
   return haversineDistance(origin.lat, origin.lng, workAddress.lat, workAddress.lng) < 0.15
 }
 
-function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin) {
+function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin, pricing) {
   const enabled = settings.enabledModes
   const atWork = isAtWork(origin, settings.workAddress)
   const opts = []
 
   if (enabled.bike && directions.biking) {
-    opts.push({ mode: 'bike', ...directions.biking, walkMinutes: 0, waitMinutes: 0, transfers: 0 })
+    opts.push({ mode: 'bike', ...directions.biking, walkMinutes: 0, waitMinutes: 0, transfers: 0, precomputedCost: 0.10 })
   }
   if (enabled.walk && directions.walking) {
-    opts.push({ mode: 'walk', ...directions.walking, walkMinutes: 0, waitMinutes: 0, transfers: 0 })
+    opts.push({ mode: 'walk', ...directions.walking, walkMinutes: 0, waitMinutes: 0, transfers: 0, precomputedCost: 0.10 })
   }
   if (enabled.limeScooter && directions.biking) {
-    opts.push({ mode: 'limeScooter', ...directions.biking, walkMinutes: 2, waitMinutes: 2, transfers: 0 })
+    opts.push({ mode: 'limeScooter', ...directions.biking, walkMinutes: 2, waitMinutes: 2, transfers: 0, precomputedCost: pricing?.limeTotal })
   }
 
   // Divvy
   if (enabled.divvyBike && directions.biking) {
     const station = divvyStations.find(s => s.bikesAvailable > 0)
-    const walkToStation = station ? Math.round(station.distanceMiles * 20) : 5 // rough walk min
+    const walkToStation = station ? Math.round(station.distanceMiles * 20) : 5
     opts.push({
       mode: 'divvyBike',
       ...directions.biking,
@@ -50,6 +51,7 @@ function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, se
       walkMinutes: walkToStation,
       waitMinutes: 0,
       transfers: 0,
+      precomputedCost: pricing?.divvyPerRide,
       alerts: divvyStations.length === 0 ? ['No Divvy stations nearby'] :
                station ? [] : ['No bikes available at nearest station'],
     })
@@ -66,6 +68,7 @@ function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, se
       waitMinutes: waitMin,
       transfers: directions.transit.transitDetails?.length > 1 ? 1 : 0,
       departures: trainDeps,
+      precomputedCost: 2.50,
       alerts: ctaArrivals.some(a => a.isDelayed) ? ['Delays reported on this line'] : [],
     })
   }
@@ -82,6 +85,7 @@ function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, se
       waitMinutes: waitMin,
       transfers: 0,
       departures: busDeps,
+      precomputedCost: 2.50,
       alerts: busPredictions.some(p => p.isDelayed) ? ['Bus delays reported'] : [],
     })
   }
@@ -89,13 +93,13 @@ function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, se
   // Driving options — suppressed if user is already at work (no car there)
   if (directions.driving) {
     if (enabled.lyft) {
-      opts.push({ mode: 'lyft', ...directions.driving, walkMinutes: 0, waitMinutes: 5, transfers: 0 })
+      opts.push({ mode: 'lyft', ...directions.driving, walkMinutes: 0, waitMinutes: 5, transfers: 0, precomputedCost: pricing?.lyftEstimate })
     }
     if (!atWork && enabled.driveAndPark) {
-      opts.push({ mode: 'driveAndPark', ...directions.driving, walkMinutes: 3, waitMinutes: 0, transfers: 0 })
+      opts.push({ mode: 'driveAndPark', ...directions.driving, walkMinutes: 3, waitMinutes: 0, transfers: 0, precomputedCost: pricing?.driveAndParkTotal })
     }
     if (!atWork && enabled.driveDropOff) {
-      opts.push({ mode: 'driveDropOff', ...directions.driving, walkMinutes: 1, waitMinutes: 0, transfers: 0 })
+      opts.push({ mode: 'driveDropOff', ...directions.driving, walkMinutes: 1, waitMinutes: 0, transfers: 0, precomputedCost: pricing?.driveDropOffTotal })
     }
   }
 
@@ -103,10 +107,12 @@ function buildOptions(directions, ctaArrivals, busPredictions, divvyStations, se
 }
 
 export function Dashboard() {
-  const { settings, weather, setWeather, setWeatherLoading, location, setLocation, setLocationError, rankedOptions, setRankedOptions, routeLoading, setRouteLoading, destination, setDestination } = useApp()
+  const { settings, weather, setWeather, setWeatherLoading, location, setLocation, setLocationError, rankedOptions, setRankedOptions, routeLoading, setRouteLoading, destination, setDestination, addTrip } = useApp()
 
   const [error, setError] = useState(null)
   const [wearItems, setWearItems] = useState([])
+  const [acceptedMode, setAcceptedMode] = useState(null)
+  const [pricingInfo, setPricingInfo] = useState(null)
 
   const fallback = settings.homeAddress ?? { lat: 41.8781, lng: -87.6298 }
   const geo = useGeolocation(fallback)
@@ -161,6 +167,13 @@ export function Dashboard() {
         fetchNearbyDivvyStations(origin.lat, origin.lng),
       ])
 
+      // Fetch live pricing (gas, Divvy, Lime, Lyft estimates)
+      const drivingDist = directions.driving?.distanceMiles ?? 4
+      const drivingDur = directions.driving?.durationMinutes ?? 20
+      const bikingDur = directions.biking?.durationMinutes ?? 20
+      const pricing = await fetchLivePricing(drivingDist, Math.max(drivingDur, bikingDur))
+      setPricingInfo(pricing)
+
       // CTA real-time (optional, fail silently)
       let ctaArrivals = []
       let busPredictions = []
@@ -181,7 +194,7 @@ export function Dashboard() {
         } catch { /* ignore */ }
       }
 
-      const rawOptions = buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin)
+      const rawOptions = buildOptions(directions, ctaArrivals, busPredictions, divvyStations, settings, origin, pricing)
       const lateness = latenessScore(settings.preferredDepartureTime)
       const ranked = rankOptions(rawOptions, weather, crimeScore, settings, lateness)
       setRankedOptions(ranked)
@@ -191,6 +204,31 @@ export function Dashboard() {
       setRouteLoading(false)
     }
   }, [geo.location, settings, weather])
+
+  const handleAcceptTrip = useCallback((option) => {
+    addTrip({
+      id: crypto.randomUUID(),
+      timestamp: Date.now(),
+      arrivalTimestamp: Date.now() + (option.durationMinutes ?? 20) * 60000,
+      durationMinutes: option.durationMinutes,
+      predictedDurationMinutes: option.durationMinutes,
+      mode: option.mode,
+      origin: geo.location ?? fallback,
+      destination,
+      distanceMiles: option.distanceMiles,
+      costDollars: option.estimatedCost,
+      weatherSnapshot: weather ? {
+        tempF: weather.tempF,
+        condition: weather.condition,
+        windMph: weather.windMph,
+        precipChance: weather.precipChance,
+      } : null,
+      wasTopPick: option.rank === 1,
+      notes: '',
+    })
+    setAcceptedMode(option.mode)
+    setTimeout(() => setAcceptedMode(null), 3000)
+  }, [geo.location, destination, weather, addTrip])
 
   // Auto-load if work address is saved and we have an API key
   useEffect(() => {
@@ -237,9 +275,21 @@ export function Dashboard() {
 
         {!routeLoading && rankedOptions.length > 0 && (
           <div className="flex flex-col gap-3">
-            <div className="text-xs text-dracula-comment font-mono uppercase tracking-wider">
-              {rankedOptions.length} options ranked
+            <div className="flex items-center justify-between">
+              <div className="text-xs text-dracula-comment font-mono uppercase tracking-wider">
+                {rankedOptions.length} options ranked
+              </div>
+              {pricingInfo && (
+                <div className="text-xs text-dracula-comment mono">
+                  ⛽ ${pricingInfo.gasPricePerGallon?.toFixed(2)}/gal · {pricingInfo.accordMpg}mpg
+                </div>
+              )}
             </div>
+            {acceptedMode && (
+              <div className="text-xs text-dracula-green bg-dracula-green/10 border border-dracula-green/30 rounded-lg px-3 py-2">
+                ✓ Trip logged — have a great commute!
+              </div>
+            )}
             {rankedOptions.map((opt, i) => (
               <TransportCard
                 key={opt.mode}
@@ -247,6 +297,8 @@ export function Dashboard() {
                 isTop={i === 0}
                 origin={geo.location ?? fallback}
                 destination={destination}
+                onAccept={handleAcceptTrip}
+                accepted={acceptedMode === opt.mode}
               />
             ))}
           </div>

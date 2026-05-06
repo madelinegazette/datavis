@@ -53,6 +53,7 @@ function computeSafetyScore(option, weather, crimeScore) {
 }
 
 function estimateCost(option, settings) {
+  if (option.precomputedCost != null) return option.precomputedCost
   const { costRates } = settings
   switch (option.mode) {
     case 'bike': case 'walk': return 0.10
@@ -66,7 +67,7 @@ function estimateCost(option, settings) {
     case 'driveAndPark':
       return (option.distanceMiles ?? 4) * costRates.gasPerMile + costRates.parkingCostDollars
     case 'driveDropOff':
-      return (option.distanceMiles ?? 4) * costRates.gasPerMile * 2 // round trip gas
+      return (option.distanceMiles ?? 4) * costRates.gasPerMile * 2
     default: return 5
   }
 }
