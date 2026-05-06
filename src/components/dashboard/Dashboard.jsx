@@ -158,10 +158,9 @@ export function Dashboard() {
     setError(null)
 
     try {
-      let directions, crimeScore, divvyStations
+      let directions, crimeScore, divvyStations, pricing
 
       if (isDemo) {
-        // Demo mode: realistic Chicago commute mock data
         directions = {
           biking:  { durationMinutes: 22, distanceMiles: 4.1 },
           walking: { durationMinutes: 58, distanceMiles: 3.9 },
@@ -170,20 +169,26 @@ export function Dashboard() {
         }
         crimeScore = 0.62
         divvyStations = [{ bikesAvailable: 3, distanceMiles: 0.15 }]
+        pricing = {
+          gasPricePerGallon: 3.45, gasPerMile: 3.45 / 26, accordMpg: 26,
+          divvyPerRide: 3.30, limeTotal: 9.58, lyftEstimate: 14.40,
+          driveGas: (3.45 / 26) * 4.3,
+          driveAndParkTotal: (3.45 / 26) * 4.3 + 20,
+          driveDropOffTotal: (3.45 / 26) * 4.3 * 2,
+        }
+        setPricingInfo(pricing)
       } else {
         ;[directions, crimeScore, divvyStations] = await Promise.all([
           fetchAllDirections(origin, resolvedDest, settings.apiKeys.googleMaps),
           fetchCrimeScore(origin, resolvedDest),
           fetchNearbyDivvyStations(origin.lat, origin.lng),
         ])
+        const drivingDist = directions.driving?.distanceMiles ?? 4
+        const drivingDur  = directions.driving?.durationMinutes ?? 20
+        const bikingDur   = directions.biking?.durationMinutes ?? 20
+        pricing = await fetchLivePricing(drivingDist, Math.max(drivingDur, bikingDur))
+        setPricingInfo(pricing)
       }
-
-      // Fetch live pricing (gas, Divvy, Lime, Lyft estimates)
-      const drivingDist = directions.driving?.distanceMiles ?? 4
-      const drivingDur = directions.driving?.durationMinutes ?? 20
-      const bikingDur = directions.biking?.durationMinutes ?? 20
-      const pricing = await fetchLivePricing(drivingDist, Math.max(drivingDur, bikingDur))
-      setPricingInfo(pricing)
 
       // CTA real-time (optional, fail silently)
       let ctaArrivals = isDemo ? [{ minutesAway: 4 }, { minutesAway: 11 }, { minutesAway: 19 }] : []
