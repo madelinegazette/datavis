@@ -141,13 +141,10 @@ export function Dashboard() {
 
   const handleGo = useCallback(async (dest) => {
     const origin = geo.location ?? fallback
-    if (!settings.apiKeys.googleMaps) {
-      setError('Add your Google Maps API key in Settings to get route options.')
-      return
-    }
+    const isDemo = !settings.apiKeys.googleMaps
 
     let resolvedDest = dest
-    if (dest.needsGeocode) {
+    if (!isDemo && dest.needsGeocode) {
       try {
         resolvedDest = await geocodeAddress(dest.formatted, settings.apiKeys.googleMaps)
       } catch {
@@ -161,11 +158,25 @@ export function Dashboard() {
     setError(null)
 
     try {
-      const [directions, crimeScore, divvyStations] = await Promise.all([
-        fetchAllDirections(origin, resolvedDest, settings.apiKeys.googleMaps),
-        fetchCrimeScore(origin, resolvedDest),
-        fetchNearbyDivvyStations(origin.lat, origin.lng),
-      ])
+      let directions, crimeScore, divvyStations
+
+      if (isDemo) {
+        // Demo mode: realistic Chicago commute mock data
+        directions = {
+          biking:  { durationMinutes: 22, distanceMiles: 4.1 },
+          walking: { durationMinutes: 58, distanceMiles: 3.9 },
+          transit: { durationMinutes: 31, distanceMiles: 5.2, transitDetails: [] },
+          driving: { durationMinutes: 17, distanceMiles: 4.3 },
+        }
+        crimeScore = 0.62
+        divvyStations = [{ bikesAvailable: 3, distanceMiles: 0.15 }]
+      } else {
+        ;[directions, crimeScore, divvyStations] = await Promise.all([
+          fetchAllDirections(origin, resolvedDest, settings.apiKeys.googleMaps),
+          fetchCrimeScore(origin, resolvedDest),
+          fetchNearbyDivvyStations(origin.lat, origin.lng),
+        ])
+      }
 
       // Fetch live pricing (gas, Divvy, Lime, Lyft estimates)
       const drivingDist = directions.driving?.distanceMiles ?? 4
@@ -175,9 +186,9 @@ export function Dashboard() {
       setPricingInfo(pricing)
 
       // CTA real-time (optional, fail silently)
-      let ctaArrivals = []
-      let busPredictions = []
-      if (settings.apiKeys.ctaTrains) {
+      let ctaArrivals = isDemo ? [{ minutesAway: 4 }, { minutesAway: 11 }, { minutesAway: 19 }] : []
+      let busPredictions = isDemo ? [{ minutesAway: 6 }, { minutesAway: 14 }] : []
+      if (!isDemo && settings.apiKeys.ctaTrains) {
         try {
           const station = findNearestStation(origin.lat, origin.lng)
           if (station && station.distanceMiles < 0.75) {
@@ -185,7 +196,7 @@ export function Dashboard() {
           }
         } catch { /* ignore */ }
       }
-      if (settings.apiKeys.ctaBuses) {
+      if (!isDemo && settings.apiKeys.ctaBuses) {
         try {
           const stops = findNearbyStops(origin.lat, origin.lng)
           if (stops.length > 0) {
@@ -244,9 +255,9 @@ export function Dashboard() {
       <WeatherStrip />
       <DestinationBar onGo={handleGo} />
 
-      {!settings.apiKeys.openWeatherMap && (
+      {!settings.apiKeys.googleMaps && (
         <div className="mx-4 mt-3 text-xs text-dracula-comment font-mono bg-dracula-line/10 border border-dracula-line/30 px-3 py-2">
-          Add API keys in <strong className="text-dracula-fg">Settings</strong> to enable weather, routes, and real-time transit.
+          Demo mode — add API keys in <strong className="text-dracula-fg">Settings</strong> for live routes and weather.
         </div>
       )}
 
